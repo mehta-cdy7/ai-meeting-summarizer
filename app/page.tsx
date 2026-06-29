@@ -1,65 +1,197 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { Brain, Sparkles } from "lucide-react";
+import { User } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabaseClient";
+
+// Components
+import Auth from "../components/Auth";
+import Header from "../components/Header";
+import NewSummaryView from "../components/NewSummaryView";
+import PastMeetingsView from "../components/PastMeetingsView";
+import MeetingDetailView from "../components/MeetingDetailView";
+
+// Hooks
+import { useSummarizer } from "../hooks/useSummarizer";
+import { useMeetingHistory } from "../hooks/useMeetingHistory";
 
 export default function Home() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [viewTab, setViewTab] = useState<"new" | "history">("new");
+
+  // Authenticate user session
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoadingAuth(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoadingAuth(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const {
+    historyMeetings,
+    loadingHistory,
+    selectedHistoryMeeting,
+    setSelectedHistoryMeeting,
+    saveMeeting,
+  } = useMeetingHistory(user);
+
+  const {
+    status,
+    uploadProgress,
+    summary,
+    transcript,
+    error,
+    handleUploadStart,
+    handleReset,
+  } = useSummarizer({
+    onSummaryGenerated: async (newSummary, rawTranscript) => {
+      await saveMeeting(newSummary, rawTranscript);
+    },
+  });
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    handleReset();
+    setViewTab("new");
+    setSelectedHistoryMeeting(null);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="flex-1 w-full relative min-h-screen flex flex-col items-center justify-start py-12 px-4 sm:px-6">
+      
+      {/* Background Radial Glow Layer */}
+      <div className="radial-bg" />
+
+      {/* Header Branding */}
+      <Header user={user} onSignOut={handleSignOut} />
+
+      {/* Main Tab Toggle Bar */}
+      {user && (
+        <div className="w-full max-w-3xl flex border-b border-white/5 mb-8 gap-8">
+          <button
+            onClick={() => {
+              setViewTab("new");
+              setSelectedHistoryMeeting(null);
+            }}
+            className={`pb-3 text-sm font-semibold relative transition-colors cursor-pointer ${
+              viewTab === "new" ? "text-white" : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            New Summary
+            {viewTab === "new" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 to-cyan-400 rounded-full" />
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setViewTab("history");
+              setSelectedHistoryMeeting(null);
+            }}
+            className={`pb-3 text-sm font-semibold relative transition-colors cursor-pointer ${
+              viewTab === "history" ? "text-white" : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            Past Meetings
+            {viewTab === "history" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 to-cyan-400 rounded-full" />
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Primary Content Guarded by Auth */}
+      {loadingAuth ? (
+        <div className="w-full max-w-3xl text-center space-y-12 my-auto flex flex-col items-center justify-center min-h-[300px]">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-violet-600 to-cyan-400 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(139,92,246,0.4)]">
+            <Brain className="w-8 h-8 text-white" />
+          </div>
+          <p className="text-zinc-500 text-xs tracking-wider uppercase font-medium animate-pulse">
+            Checking credentials...
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+      ) : !user ? (
+        <Auth />
+      ) : viewTab === "new" ? (
+        // --- NEW SUMMARY TAB ---
+        status !== "completed" ? (
+          <NewSummaryView
+            status={status}
+            uploadProgress={uploadProgress}
+            error={error}
+            onUploadStart={handleUploadStart}
+            onReset={handleReset}
+          />
+        ) : (
+          summary && (
+            <MeetingDetailView
+              title={summary.title}
+              overview={summary.overview}
+              keyDecisions={summary.key_decisions}
+              actionItems={summary.action_items}
+              rawTranscript={transcript}
+              subtitle="Processed with Whisper-large & GPT-4o-mini"
+              actionButton={
+                <button
+                  onClick={handleReset}
+                  className="px-4 py-2 rounded-xl bg-white/5 border border-white/8 text-zinc-300 hover:text-white hover:bg-white/10 hover:border-white/15 transition-all text-xs font-semibold cursor-pointer"
+                >
+                  Upload Another
+                </button>
+              }
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+          )
+        )
+      ) : (
+        // --- PAST MEETINGS TAB ---
+        selectedHistoryMeeting ? (
+          <MeetingDetailView
+            title={selectedHistoryMeeting.title}
+            overview={selectedHistoryMeeting.overview}
+            keyDecisions={selectedHistoryMeeting.key_decisions}
+            actionItems={selectedHistoryMeeting.action_items}
+            rawTranscript={selectedHistoryMeeting.raw_transcript}
+            subtitle={`Processed on ${new Date(selectedHistoryMeeting.created_at).toLocaleString(
+              undefined,
+              { dateStyle: "medium", timeStyle: "short" }
+            )}`}
+            actionButton={
+              <button
+                onClick={() => setSelectedHistoryMeeting(null)}
+                className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors mb-4 bg-white/5 border border-white/8 px-3 py-1 rounded-lg cursor-pointer font-medium"
+              >
+                ← Back to Past Meetings
+              </button>
+            }
+          />
+        ) : (
+          <PastMeetingsView
+            historyMeetings={historyMeetings}
+            loadingHistory={loadingHistory}
+            onSelectMeeting={setSelectedHistoryMeeting}
+            onNavigateToNew={() => setViewTab("new")}
+          />
+        )
+      )}
+
+      {/* Footer copyright */}
+      <footer className="mt-auto pt-16 text-zinc-600 text-xs text-center flex items-center gap-1">
+        <span>© {new Date().getFullYear()} Recall AI. Built with</span>
+        <Sparkles className="w-3 h-3 text-violet-500" />
+        <span>and Next.js v16.</span>
+      </footer>
+    </main>
   );
 }
