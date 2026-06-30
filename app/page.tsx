@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Brain, Sparkles } from "lucide-react";
+import { Brain, Sparkles, Trash2 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 
@@ -46,6 +46,7 @@ export default function Home() {
     selectedHistoryMeeting,
     setSelectedHistoryMeeting,
     saveMeeting,
+    deleteMeeting,
   } = useMeetingHistory(user);
 
   const {
@@ -126,7 +127,7 @@ export default function Home() {
         <Auth />
       ) : viewTab === "new" ? (
         // --- NEW SUMMARY TAB ---
-        status !== "completed" ? (
+        !(status === "completed" || (status === "summarizing" && summary)) ? (
           <NewSummaryView
             status={status}
             uploadProgress={uploadProgress}
@@ -142,14 +143,25 @@ export default function Home() {
               keyDecisions={summary.key_decisions}
               actionItems={summary.action_items}
               rawTranscript={transcript}
-              subtitle="Processed with Whisper-large & GPT-4o-mini"
+              subtitle={
+                status === "summarizing"
+                  ? "Streaming live meeting insights..."
+                  : "Processed with Whisper-large & GPT-4o-mini"
+              }
               actionButton={
-                <button
-                  onClick={handleReset}
-                  className="px-4 py-2 rounded-xl bg-white/5 border border-white/8 text-zinc-300 hover:text-white hover:bg-white/10 hover:border-white/15 transition-all text-xs font-semibold cursor-pointer"
-                >
-                  Upload Another
-                </button>
+                status === "completed" ? (
+                  <button
+                    onClick={handleReset}
+                    className="px-4 py-2 rounded-xl bg-white/5 border border-white/8 text-zinc-300 hover:text-white hover:bg-white/10 hover:border-white/15 transition-all text-xs font-semibold cursor-pointer"
+                  >
+                    Upload Another
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-zinc-400 bg-white/5 border border-white/8 px-3 py-1.5 rounded-xl font-medium">
+                    <div className="w-2 h-2 rounded-full bg-violet-400 animate-ping" />
+                    <span>Streaming Insights...</span>
+                  </div>
+                )
               }
             />
           )
@@ -168,12 +180,25 @@ export default function Home() {
               { dateStyle: "medium", timeStyle: "short" }
             )}`}
             actionButton={
-              <button
-                onClick={() => setSelectedHistoryMeeting(null)}
-                className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors mb-4 bg-white/5 border border-white/8 px-3 py-1 rounded-lg cursor-pointer font-medium"
-              >
-                ← Back to Past Meetings
-              </button>
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <button
+                  onClick={() => setSelectedHistoryMeeting(null)}
+                  className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors bg-white/5 border border-white/8 px-3 py-1.5 rounded-lg cursor-pointer font-medium"
+                >
+                  ← Back to Past Meetings
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this meeting summary?")) {
+                      deleteMeeting(selectedHistoryMeeting.id);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-white hover:bg-rose-500/10 hover:border-rose-500/20 transition-all bg-white/5 border border-white/8 px-3 py-1.5 rounded-lg cursor-pointer font-medium font-semibold"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete Summary
+                </button>
+              </div>
             }
           />
         ) : (
@@ -181,6 +206,7 @@ export default function Home() {
             historyMeetings={historyMeetings}
             loadingHistory={loadingHistory}
             onSelectMeeting={setSelectedHistoryMeeting}
+            onDeleteMeeting={deleteMeeting}
             onNavigateToNew={() => setViewTab("new")}
           />
         )

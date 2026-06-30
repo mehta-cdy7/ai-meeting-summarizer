@@ -3,20 +3,20 @@ import { Sparkles, FileText, Gavel, CheckSquare } from "lucide-react";
 import { ActionItem } from "../types";
 
 interface MeetingDetailViewProps {
-  title: string;
-  overview: string;
-  keyDecisions: string[];
-  actionItems: ActionItem[];
+  title?: string;
+  overview?: string;
+  keyDecisions?: string[];
+  actionItems?: any[];
   rawTranscript: string;
   subtitle: string;
   actionButton?: React.ReactNode;
 }
 
 export default function MeetingDetailView({
-  title,
-  overview,
-  keyDecisions,
-  actionItems,
+  title = "Meeting Insights",
+  overview = "",
+  keyDecisions = [],
+  actionItems = [],
   rawTranscript,
   subtitle,
   actionButton,
@@ -77,7 +77,7 @@ export default function MeetingDetailView({
                 Overview
               </h3>
               <p className="text-zinc-300 text-sm leading-relaxed font-light bg-white/[0.01] border border-white/[0.04] p-4 rounded-xl">
-                {overview}
+                {overview || "Writing overview..."}
               </p>
             </div>
 
@@ -95,7 +95,7 @@ export default function MeetingDetailView({
                       className="flex gap-3 items-start p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/10 text-sm text-zinc-300 font-light leading-relaxed"
                     >
                       <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                      <span>{decision}</span>
+                      <span>{decision || "Writing decision..."}</span>
                     </div>
                   ))}
                 </div>
@@ -120,14 +120,14 @@ export default function MeetingDetailView({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-white/90 leading-snug">
-                          {item.task}
+                          {item?.task || "Writing task..."}
                         </p>
                         <div className="flex flex-wrap items-center gap-2 mt-2.5">
                           <span className="text-[10px] bg-white/5 border border-white/8 text-zinc-300 px-2 py-0.5 rounded-md font-medium">
-                            Assignee: {item.assignee}
+                            Assignee: {item?.assignee || "Thinking..."}
                           </span>
                           <span className="text-[10px] bg-white/5 border border-white/8 text-zinc-400 px-2 py-0.5 rounded-md">
-                            Due: {item.deadline}
+                            Due: {item?.deadline || "Thinking..."}
                           </span>
                         </div>
                       </div>

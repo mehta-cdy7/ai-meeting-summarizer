@@ -1,11 +1,12 @@
 import React from "react";
-import { FileText, Sparkles } from "lucide-react";
+import { FileText, Sparkles, Trash2 } from "lucide-react";
 import { Meeting } from "../types";
 
 interface PastMeetingsViewProps {
   historyMeetings: Meeting[];
   loadingHistory: boolean;
   onSelectMeeting: (meeting: Meeting) => void;
+  onDeleteMeeting: (id: string) => void;
   onNavigateToNew: () => void;
 }
 
@@ -13,6 +14,7 @@ export default function PastMeetingsView({
   historyMeetings,
   loadingHistory,
   onSelectMeeting,
+  onDeleteMeeting,
   onNavigateToNew,
 }: PastMeetingsViewProps) {
   return (
@@ -62,12 +64,14 @@ export default function PastMeetingsView({
         // Meeting list
         <div className="grid grid-cols-1 gap-4">
           {historyMeetings.map((meeting) => (
-            <button
+            <div
               key={meeting.id}
-              onClick={() => onSelectMeeting(meeting)}
-              className="glass-panel glass-panel-hover rounded-2xl p-5 text-left transition-all duration-300 border border-white/10 hover:border-violet-500/30 flex flex-col justify-between cursor-pointer w-full group"
+              className="glass-panel glass-panel-hover rounded-2xl p-5 text-left transition-all duration-300 border border-white/10 hover:border-violet-500/30 flex items-center justify-between w-full group relative"
             >
-              <div className="w-full">
+              <div
+                onClick={() => onSelectMeeting(meeting)}
+                className="flex-1 cursor-pointer min-w-0 pr-4"
+              >
                 <div className="flex items-center justify-between text-[10px] text-zinc-500 font-medium">
                   <span>
                     {new Date(meeting.created_at).toLocaleDateString(undefined, {
@@ -87,7 +91,19 @@ export default function PastMeetingsView({
                   {meeting.overview}
                 </p>
               </div>
-            </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm("Are you sure you want to delete this meeting summary?")) {
+                    onDeleteMeeting(meeting.id);
+                  }
+                }}
+                className="p-2.5 rounded-xl bg-white/5 border border-white/8 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20 transition-all cursor-pointer shrink-0"
+                title="Delete Summary"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           ))}
         </div>
       )}

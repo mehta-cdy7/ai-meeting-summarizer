@@ -56,6 +56,37 @@ export function useMeetingHistory(user: User | null) {
     }
   };
 
+  const deleteMeeting = async (id: string) => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from("meetings")
+        .delete()
+        .eq("id", id)
+        .select();
+
+      if (error) {
+        console.error("Failed to delete meeting from Supabase:");
+        console.error("Message:", error.message);
+        console.error("Details:", error.details);
+        console.error("Hint:", error.hint);
+        console.error("Code:", error.code);
+      } else if (!data || data.length === 0) {
+        console.warn(
+          "No records were deleted from Supabase. This is likely because Row Level Security (RLS) is enabled on the 'meetings' table, but there is no DELETE policy allowing this action, or the record does not exist."
+        );
+      } else {
+        console.log("Meeting successfully deleted from database!");
+        setHistoryMeetings((prev) => prev.filter((m) => m.id !== id));
+        if (selectedHistoryMeeting?.id === id) {
+          setSelectedHistoryMeeting(null);
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting meeting:", err);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchHistory();
@@ -72,5 +103,6 @@ export function useMeetingHistory(user: User | null) {
     setSelectedHistoryMeeting,
     fetchHistory,
     saveMeeting,
+    deleteMeeting,
   };
 }
